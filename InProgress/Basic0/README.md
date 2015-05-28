@@ -1,4 +1,4 @@
-Arduino Basics, Part 0
+Arduino Basics: Blinking LED
 
 All code, schematics, and other resources for this tutorial can be found at: https://github.com/lordvon/Arduino_Tutorials/tree/master/Basic0
 

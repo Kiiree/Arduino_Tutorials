@@ -15,12 +15,20 @@ int vector_buffer[2] = {0,0};
 int vector[2] = {0,0};
 int servo[2] = {0,0};
 
+int same_thrust_pin = 13;
+
+int SERVO_MIN = 1000;
+
 void setup() {
   esc_right.attach(esc_pin_right);
   esc_left.attach(esc_pin_left);
   pinMode(ud_pin, INPUT);
   pinMode(lr_pin, INPUT);
   Serial.begin(9600);
+  pinMode(same_thrust_pin, OUTPUT);
+  digitalWrite(same_thrust_pin,HIGH);
+  esc_right.writeMicroseconds(SERVO_MIN);
+  esc_left.writeMicroseconds(SERVO_MIN);
 }
 
 void loop() {
@@ -35,17 +43,19 @@ void loop() {
 //    Serial.print(vector[0]);
 //    Serial.print(", ");
 //    Serial.println(vector[1]);
-    Serial.print(servo[0]);
-    Serial.print(", ");
-    Serial.println(servo[1]);
+//    Serial.print(servo[0]);
+//    Serial.print(", ");
+//    Serial.println(servo[1]);
     vector_to_buffer();
+    esc_right.writeMicroseconds(servo[1]);
+    esc_left.writeMicroseconds(servo[0]);
   }
 //  delay(100);
 }
 boolean joystick_to_vector()
 {
-  int MIDDLE_X = 470;
-  int MIDDLE_Y = 512;
+  int MIDDLE_X = 350;
+  int MIDDLE_Y = 390;
 
   vector[0] = analogRead(lr_pin) - MIDDLE_X;
   vector[1] = analogRead(ud_pin) - MIDDLE_Y;
@@ -55,7 +65,7 @@ boolean joystick_to_vector()
 }
 boolean noise_filter()
 {//Returns true if vector was changed.
-  int TOL = 10;
+  int TOL = 20;
   
   int dx = abs(vector[0] - vector_buffer[0]);
   int dy = abs(vector[1] - vector_buffer[1]);
@@ -103,16 +113,11 @@ void print_state()
 
 void vector_to_servo()
 {
-  int MAX_MAG = 460;
+  int MAX_MAG = 500;
   int SERVO_MAX = 2000;
-  int SERVO_MIN = 1000;
   int SERVO_RANGE = SERVO_MAX-SERVO_MIN;
   int SAME_THRUST_ZONE = 200;
   
-  int POT_MAX_Y = 500;
-  int POT_MIN_Y = 480;
-  int POT_MAX_X = 500;
-  int POT_MIN_X = 470;
   int POT_ZERO_ZONE = 40;
   
   int ud = vector[1];
@@ -135,8 +140,18 @@ void vector_to_servo()
 //  Serial.println(mag);
   int subtraction = abs (((dtype)lr * (dtype)SERVO_RANGE) / (dtype)MAX_MAG);
   subtraction -= SAME_THRUST_ZONE;
-  if(subtraction < 0) subtraction = 0;
+  if(subtraction <= 0)
+  {
+    digitalWrite(same_thrust_pin,HIGH);
+    subtraction = 0;
+  }
+  else digitalWrite(same_thrust_pin,LOW);
   if(lr < 0) servo[0] -= subtraction;
   if(lr > 0) servo[1] -= subtraction;
+  if(servo[0] < SERVO_MIN) servo[0] = SERVO_MIN;
+  if(servo[1] < SERVO_MIN) servo[1] = SERVO_MIN;
+  if(lr < 0 && ud <=0) servo[0] = SERVO_MIN;
+  if(lr > 0 && ud <=0) servo[1] = SERVO_MIN;
+//  Serial.println(ud);
 }
 
